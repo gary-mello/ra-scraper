@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedal Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0b0a08;
+      --bg-card:    #111009;
+      --bg-raised:  #191710;
+      --bg-input:   #0d0c0a;
+      --border:     #1e1c14;
+      --border-hi:  #322e1c;
+      --gold:       #dfc84a;
+      --text:       #eee9d8;
+      --text-2:     #9a9578;
+      --text-3:     #4a4733;
+      --red:        #e04848;
+      --z1: #5bb8f5;
+      --z2: #2ecfb8;
+      --z3: #72e068;
+      --z4: #f5a030;
+      --z5: #ff4646;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); }
+
+    body {
+      font-family: 'Crimson Text', Georgia, serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* Diagonal grain texture */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -48deg,
+        transparent 0px, transparent 3px,
+        rgba(255,255,255,0.009) 3px, rgba(255,255,255,0.009) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Layout ── */
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 28px;
+      min-height: 100%;
+    }
+
+    /* ── Masthead ── */
+    .masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 36px 0 30px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+
+    .masthead-left { display: flex; align-items: baseline; gap: 16px; }
+
+    .logo {
+      font-family: 'Bebas Neue', Impact, sans-serif;
+      font-size: 46px;
+      letter-spacing: 3px;
+      line-height: 1;
+      color: var(--text);
+    }
+    .logo em { color: var(--gold); font-style: normal; }
+
+    .tagline {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: var(--text-3);
+      padding-bottom: 3px;
+    }
+
+    .masthead-actions { display: flex; gap: 8px; align-items: center; }
+
+    .btn-export {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      color: var(--text-2);
+      padding: 9px 16px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-export:hover { color: var(--text); border-color: var(--text-2); }
+
+    .btn-new {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 17px;
+      letter-spacing: 2px;
+      background: var(--gold);
+      color: #0b0a08;
+      border: none;
+      padding: 10px 26px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-new:hover { opacity: 0.88; }
+    .btn-new:active { transform: scale(0.97); }
+
+    /* ── Scoreboard ── */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .score-cell {
+      padding: 28px 0 24px;
+      border-right: 1px solid var(--border);
+    }
+    .score-cell:last-child { border-right: none; }
+    .score-cell + .score-cell { padding-left: 24px; }
+
+    .score-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .score-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    .score-unit {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--text-3);
+      margin-top: 3px;
+    }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group { display: flex; gap: 4px; }
+
+    .filter-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border-hi);
+      margin: 0 4px;
+      align-self: center;
+    }
+
+    .fpill {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 13px;
+      border: 1px solid var(--border-hi);
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .fpill:hover { color: var(--text); border-color: var(--text-2); }
+    .fpill.active {
+      background: var(--gold);
+      color: #0b0a08;
+      border-color: var(--gold);
+    }
+
+    .zpill.active {
+      background: var(--zc);
+      border-color: var(--zc);
+      color: #0b0a08;
+    }
+    .zpill:not(.active):hover {
+      color: var(--zc);
+      border-color: var(--zc);
+    }
+
+    .search-wrap { margin-left: auto; position: relative; }
+    .search-wrap::before {
+      content: '↳';
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .search-input {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 15px;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      padding: 6px 12px 6px 28px;
+      width: 200px;
+      outline: none;
+      transition: border-color 0.15s, width 0.2s;
+    }
+    .search-input:focus { border-color: var(--text-2); width: 240px; }
+    .search-input::placeholder { color: var(--text-3); }
+
+    /* ── List header ── */
+    .list-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 26px 0 14px;
+    }
+
+    .list-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2.5px;
+      color: var(--text-2);
+    }
+
+    .list-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    /* ── Ride cards ── */
+    .rides-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-bottom: 64px;
+    }
+
+    .ride-card {
+      display: grid;
+      grid-template-columns: 5px 1fr auto;
+      background: var(--bg-card);
+      transition: background 0.12s;
+      animation: card-in 0.28s ease both;
+    }
+    .ride-card:hover { background: var(--bg-raised); }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ride-accent { background: var(--zc, #555); }
+
+    .ride-body { padding: 20px 24px; min-width: 0; }
+
+    .ride-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .ride-date {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: var(--text-2);
+    }
+
+    .ride-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border: 1px solid var(--zc, #555);
+      color: var(--zc, #555);
+      opacity: 0.75;
+    }
+
+    .ride-feel { font-size: 15px; line-height: 1; }
+
+    .ride-dist-row {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+
+    .ride-dist {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 76px;
+      line-height: 0.88;
+      color: var(--text);
+      letter-spacing: 2px;
+    }
+
+    .ride-dist-unit {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 22px;
+      color: var(--text-2);
+    }
+
+    .ride-metrics {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .rmet {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+    .rmet strong { color: var(--text); font-weight: 500; }
+
+    .ride-notes {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--text-3);
+      margin-top: 10px;
+      max-width: 560px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ride-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 20px 20px 20px 12px;
+      gap: 12px;
+    }
+
+    .effort-track {
+      display: flex;
+      gap: 3px;
+      align-items: flex-end;
+    }
+
+    .ebar {
+      width: 4px;
+      border-radius: 2px;
+      background: var(--border-hi);
+    }
+
+    .ride-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .ride-card:hover .ride-actions { opacity: 1; }
+
+    .act-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 5px 11px;
+      border: 1px solid var(--border-hi);
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .act-btn:hover { color: var(--text); border-color: var(--text-2); }
+    .act-btn.del:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .empty-zero {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 140px;
+      line-height: 1;
+      color: var(--border-hi);
+      letter-spacing: 8px;
+    }
+
+    .empty-msg {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 18px;
+      color: var(--text-3);
+      margin-top: 4px;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11,10,8,0.9);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--bg-raised);
+      border: 1px solid var(--border-hi);
+      width: 540px;
+      max-width: 95vw;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.72);
+      animation: modal-in 0.18s ease;
+    }
+
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      letter-spacing: 2.5px;
+    }
+
+    .modal-close {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      color: var(--text-2);
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .modal-close:hover { color: var(--text); border-color: var(--text-2); }
+
+    .modal-body { padding: 24px 28px 28px; }
+
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .fgroup { display: flex; flex-direction: column; gap: 8px; }
+    .fgroup.full { grid-column: 1 / -1; }
+
+    .flabel {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .finput, .ftarea {
+      font-family: 'Crimson Text', serif;
+      font-size: 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-hi);
+      color: var(--text);
+      padding: 10px 14px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .finput:focus, .ftarea:focus { border-color: var(--gold); }
+    .ftarea { resize: vertical; min-height: 70px; }
+    input[type="date"].finput { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+    /* Zone selector */
+    .zone-sel {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .zone-opt {
+      padding: 12px 6px;
+      border: 1px solid var(--border-hi);
+      background: var(--bg-input);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s;
+    }
+    .zone-opt:hover { border-color: var(--zc); }
+    .zone-opt.selected { background: var(--zc); border-color: var(--zc); }
+    .zone-opt.selected .znum,
+    .zone-opt.selected .zname { color: #0b0a08 !important; }
+
+    .znum {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--zc);
+    }
+    .zname {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-top: 4px;
+    }
+
+    /* Effort selector */
+    .effort-sel { display: flex; gap: 5px; }
+
+    .eopt {
+      flex: 1;
+      padding: 9px 0;
+      border: 1px solid var(--border-hi);
+      background: var(--bg-input);
+      cursor: pointer;
+      text-align: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      color: var(--text-2);
+      transition: all 0.12s;
+    }
+    .eopt:hover { border-color: var(--gold); color: var(--gold); }
+    .eopt.selected { background: var(--gold); border-color: var(--gold); color: #0b0a08; }
+
+    /* Feel selector */
+    .feel-sel { display: flex; gap: 6px; }
+
+    .feel-opt {
+      flex: 1;
+      padding: 10px 4px;
+      border: 1px solid var(--border-hi);
+      background: var(--bg-input);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s;
+    }
+    .feel-opt:hover { border-color: var(--border-hi); background: var(--bg-raised); }
+    .feel-opt.selected { border-color: var(--fc, var(--gold)); }
+
+    .femoji { font-size: 22px; display: block; margin-bottom: 3px; }
+    .fname {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+    }
+
+    .modal-foot {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-cancel {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--border-hi);
+      color: var(--text-2);
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .btn-cancel:hover { color: var(--text); border-color: var(--text-2); }
+
+    .btn-save {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 17px;
+      letter-spacing: 2px;
+      background: var(--gold);
+      color: #0b0a08;
+      border: none;
+      padding: 10px 30px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-save:hover { opacity: 0.88; }
+    .btn-save:active { transform: scale(0.97); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--text);
+      color: var(--bg);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      padding: 12px 20px;
+      z-index: 10000;
+      display: none;
+      animation: toast-in 0.18s ease;
+    }
+    .toast.show { display: block; }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-hi); }
+
+    @media (max-width: 640px) {
+      .scoreboard { grid-template-columns: repeat(3, 1fr); }
+      .score-cell:nth-child(4), .score-cell:nth-child(5) { display: none; }
+      .ride-dist { font-size: 52px; }
+      .filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 12px; }
+      .search-wrap { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="masthead">
+    <div class="masthead-left">
+      <div class="logo">PEDAL<em>LOG</em></div>
+      <div class="tagline">training logbook</div>
+    </div>
+    <div class="masthead-actions">
+      <button class="btn-export" onclick="exportData()">↓ export csv</button>
+      <button class="btn-new" onclick="openModal()">+ LOG RIDE</button>
+    </div>
+  </header>
+
+  <div class="scoreboard">
+    <div class="score-cell">
+      <div class="score-label">Rides</div>
+      <div class="score-value" id="s-rides">0</div>
+      <div class="score-unit">all time</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Distance</div>
+      <div class="score-value" id="s-dist">0</div>
+      <div class="score-unit">miles total</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Time</div>
+      <div class="score-value" id="s-time">0h</div>
+      <div class="score-unit">in the saddle</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Avg RPE</div>
+      <div class="score-value" id="s-effort">—</div>
+      <div class="score-unit">effort / 10</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Top Zone</div>
+      <div class="score-value" id="s-zone">—</div>
+      <div class="score-unit">most ridden</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group" id="vf">
+      <button class="fpill active" onclick="setView('all',this)">All</button>
+      <button class="fpill" onclick="setView('week',this)">This Week</button>
+      <button class="fpill" onclick="setView('month',this)">This Month</button>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group" id="zf">
+      <button class="fpill zpill" style="--zc:var(--z1)" onclick="setZoneFilter(1,this)">Z1</button>
+      <button class="fpill zpill" style="--zc:var(--z2)" onclick="setZoneFilter(2,this)">Z2</button>
+      <button class="fpill zpill" style="--zc:var(--z3)" onclick="setZoneFilter(3,this)">Z3</button>
+      <button class="fpill zpill" style="--zc:var(--z4)" onclick="setZoneFilter(4,this)">Z4</button>
+      <button class="fpill zpill" style="--zc:var(--z5)" onclick="setZoneFilter(5,this)">Z5</button>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group" id="sf">
+      <button class="fpill active" onclick="setSort('date',this)">Newest</button>
+      <button class="fpill" onclick="setSort('distance',this)">Distance</button>
+      <button class="fpill" onclick="setSort('effort',this)">Effort</button>
+    </div>
+    <div class="search-wrap">
+      <input type="text" class="search-input" id="search-input" placeholder="search notes…" oninput="debouncedSearch()">
+    </div>
+  </div>
+
+  <div class="list-header">
+    <span class="list-title" id="list-title">All Rides</span>
+    <span class="list-count" id="list-count"></span>
+  </div>
+
+  <div class="rides-list" id="rides-list"></div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">LOG A RIDE</span>
+      <button class="modal-close" onclick="closeModal()">✕ close</button>
+    </div>
+    <div class="modal-body">
+      <div class="fgrid">
+
+        <div class="fgroup">
+          <label class="flabel">Date</label>
+          <input type="date" class="finput" id="f-date">
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Distance (miles)</label>
+          <input type="number" class="finput" id="f-dist" placeholder="0.0" step="0.1" min="0.1">
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Hours</label>
+          <input type="number" class="finput" id="f-hours" placeholder="0" min="0" max="23">
+        </div>
+
+        <div class="fgroup">
+          <label class="flabel">Minutes</label>
+          <input type="number" class="finput" id="f-mins" placeholder="0" min="0" max="59">
+        </div>
+
+        <div class="fgroup full">
+          <label class="flabel">Training Zone</label>
+          <div class="zone-sel">
+            <div class="zone-opt" data-zone="1" style="--zc:var(--z1)" onclick="selectZone(1,this)">
+              <div class="znum">1</div><div class="zname">Recovery</div>
+            </div>
+            <div class="zone-opt" data-zone="2" style="--zc:var(--z2)" onclick="selectZone(2,this)">
+              <div class="znum">2</div><div class="zname">Endurance</div>
+            </div>
+            <div class="zone-opt" data-zone="3" style="--zc:var(--z3)" onclick="selectZone(3,this)">
+              <div class="znum">3</div><div class="zname">Tempo</div>
+            </div>
+            <div class="zone-opt" data-zone="4" style="--zc:var(--z4)" onclick="selectZone(4,this)">
+              <div class="znum">4</div><div class="zname">Threshold</div>
+            </div>
+            <div class="zone-opt" data-zone="5" style="--zc:var(--z5)" onclick="selectZone(5,this)">
+              <div class="znum">5</div><div class="zname">VO2 Max</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fgroup full">
+          <label class="flabel">Effort (RPE 1–10)</label>
+          <div class="effort-sel" id="effort-sel"></div>
+        </div>
+
+        <div class="fgroup full">
+          <label class="flabel">How Did It Feel?</label>
+          <div class="feel-sel">
+            <div class="feel-opt" style="--fc:var(--z5)" onclick="selectFeel('terrible',this)">
+              <span class="femoji">😵</span><span class="fname">Terrible</span>
+            </div>
+            <div class="feel-opt" style="--fc:var(--z4)" onclick="selectFeel('hard',this)">
+              <span class="femoji">😤</span><span class="fname">Hard</span>
+            </div>
+            <div class="feel-opt" style="--fc:var(--gold)" onclick="selectFeel('ok',this)">
+              <span class="femoji">😐</span><span class="fname">OK</span>
+            </div>
+            <div class="feel-opt" style="--fc:var(--z2)" onclick="selectFeel('good',this)">
+              <span class="femoji">😊</span><span class="fname">Good</span>
+            </div>
+            <div class="feel-opt" style="--fc:var(--z3)" onclick="selectFeel('great',this)">
+              <span class="femoji">🤩</span><span class="fname">Great</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="fgroup full">
+          <label class="flabel">Notes</label>
+          <textarea class="ftarea" id="f-notes" placeholder="Weather, legs, route highlights…"></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-save" onclick="saveWorkout()">SAVE RIDE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Data ──────────────────────────────────────────────────────────────
+  let workouts = [];
+  try { workouts = JSON.parse(localStorage.getItem('cycling-workouts') || '[]'); }
+  catch(e) { console.error('Could not load saved workouts:', e); }
+
+  let editingId = null;
+  let selZone = null, selEffort = null, selFeel = null;
+  let currentView = 'all';
+  let currentZoneFilter = null;
+  let currentSort = 'date';
+
+  const ZONE_NAMES = { 1:'Recovery', 2:'Endurance', 3:'Tempo', 4:'Threshold', 5:'VO2 Max' };
+  const ZONE_VARS  = { 1:'var(--z1)', 2:'var(--z2)', 3:'var(--z3)', 4:'var(--z4)', 5:'var(--z5)' };
+  const FEEL_CFG   = {
+    terrible: { emoji:'😵', label:'Terrible' },
+    hard:     { emoji:'😤', label:'Hard' },
+    ok:       { emoji:'😐', label:'OK' },
+    good:     { emoji:'😊', label:'Good' },
+    great:    { emoji:'🤩', label:'Great' },
+  };
+
+  // ── Build effort buttons ───────────────────────────────────────────────
+  (function() {
+    const el = document.getElementById('effort-sel');
+    for (let i = 1; i <= 10; i++) {
+      const b = document.createElement('div');
+      b.className = 'eopt';
+      b.textContent = i;
+      b.onclick = () => selectEffort(i, b);
+      el.appendChild(b);
+    }
+  })();
+
+  // ── Selectors ─────────────────────────────────────────────────────────
+  function selectZone(z, el) {
+    selZone = z;
+    document.querySelectorAll('.zone-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectEffort(e, el) {
+    selEffort = e;
+    document.querySelectorAll('.eopt').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectFeel(f, el) {
+    selFeel = f;
+    document.querySelectorAll('.feel-opt').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(d) {
+    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  }
+
+  function fmtTime(m) {
+    const h = Math.floor(m/60), min = m%60;
+    if (h === 0) return `${min}m`;
+    return min === 0 ? `${h}h` : `${h}h ${min}m`;
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────
+  function openModal(id = null) {
+    editingId = id;
+    resetForm();
+    if (id) {
+      const w = workouts.find(x => x.id === id);
+      document.getElementById('modal-title').textContent = 'EDIT RIDE';
+      document.getElementById('f-date').value  = w.date;
+      document.getElementById('f-dist').value  = w.distance;
+      document.getElementById('f-hours').value = Math.floor(w.minutes / 60);
+      document.getElementById('f-mins').value  = w.minutes % 60;
+      document.getElementById('f-notes').value = w.notes || '';
+      if (w.zone) {
+        const el = document.querySelector(`.zone-opt[data-zone="${w.zone}"]`);
+        if (el) selectZone(w.zone, el);
+      }
+      if (w.effort) {
+        const el = [...document.querySelectorAll('.eopt')].find(b => +b.textContent === w.effort);
+        if (el) selectEffort(w.effort, el);
+      }
+      if (w.feel) {
+        const el = [...document.querySelectorAll('.feel-opt')].find(b =>
+          b.querySelector('.fname')?.textContent.toLowerCase() === w.feel
+        );
+        if (el) selectFeel(w.feel, el);
+      }
+    } else {
+      document.getElementById('modal-title').textContent = 'LOG A RIDE';
+      document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    }
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  function resetForm() {
+    selZone = null; selEffort = null; selFeel = null;
+    ['f-date','f-dist','f-hours','f-mins','f-notes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.querySelectorAll('.zone-opt, .eopt, .feel-opt').forEach(e => e.classList.remove('selected'));
+  }
+
+  function saveWorkout() {
+    const date  = document.getElementById('f-date').value;
+    const dist  = parseFloat(document.getElementById('f-dist').value);
+    const hours = parseInt(document.getElementById('f-hours').value) || 0;
+    const mins  = parseInt(document.getElementById('f-mins').value) || 0;
+    const totalMins = hours * 60 + mins;
+    const notes = document.getElementById('f-notes').value.trim();
+
+    if (!date)                              { showToast('Please enter a date.');                    return; }
+    if (isNaN(dist) || dist <= 0 || dist > 1000) { showToast('Enter a valid distance (0–1000 mi).'); return; }
+    if (totalMins <= 0)                     { showToast('Please enter a duration.');                return; }
+    if (!selZone)                           { showToast('Please select a training zone.');          return; }
+
+    const w = {
+      id: editingId || Date.now().toString(),
+      date, distance: dist, minutes: totalMins,
+      zone: selZone, effort: selEffort, feel: selFeel, notes,
+    };
+
+    if (editingId) {
+      workouts[workouts.findIndex(x => x.id === editingId)] = w;
+      showToast('Ride updated');
+    } else {
+      workouts.push(w);
+      showToast('Ride logged');
+    }
+
+    localStorage.setItem('cycling-workouts', JSON.stringify(workouts));
+    closeModal();
+    renderAll();
+  }
+
+  function deleteWorkout(id) {
+    if (!confirm('Delete this ride? This cannot be undone.')) return;
+    workouts = workouts.filter(x => x.id !== id);
+    localStorage.setItem('cycling-workouts', JSON.stringify(workouts));
+    renderAll();
+    showToast('Ride deleted');
+  }
+
+  // ── Filters ───────────────────────────────────────────────────────────
+  function setView(v, el) {
+    currentView = v; currentZoneFilter = null;
+    sessionStorage.setItem('ct-view', v); sessionStorage.removeItem('ct-zone');
+    document.querySelectorAll('#vf .fpill, #zf .fpill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    const titles = { all:'All Rides', week:'This Week', month:'This Month' };
+    document.getElementById('list-title').textContent = titles[v] || 'Rides';
+    renderWorkouts();
+  }
+
+  function setZoneFilter(z, el) {
+    currentView = null; currentZoneFilter = z;
+    sessionStorage.setItem('ct-zone', z); sessionStorage.removeItem('ct-view');
+    document.querySelectorAll('#vf .fpill, #zf .fpill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('list-title').textContent = `Zone ${z} — ${ZONE_NAMES[z]}`;
+    renderWorkouts();
+  }
+
+  function setSort(s, el) {
+    currentSort = s;
+    sessionStorage.setItem('ct-sort', s);
+    document.querySelectorAll('#sf .fpill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderWorkouts();
+  }
+
+  let searchTimer;
+  function debouncedSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderWorkouts, 300);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  function getFiltered() {
+    const now = new Date();
+    let list = [...workouts];
+
+    if (currentView === 'week') {
+      const sow = new Date(now);
+      sow.setDate(now.getDate() - now.getDay());
+      sow.setHours(0,0,0,0);
+      list = list.filter(w => new Date(w.date + 'T00:00:00') >= sow);
+    } else if (currentView === 'month') {
+      const som = new Date(now.getFullYear(), now.getMonth(), 1);
+      list = list.filter(w => new Date(w.date + 'T00:00:00') >= som);
+    }
+
+    if (currentZoneFilter) list = list.filter(w => w.zone === currentZoneFilter);
+
+    const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+    if (q) list = list.filter(w => (w.notes || '').toLowerCase().includes(q));
+
+    if (currentSort === 'date')     list.sort((a,b) => b.date.localeCompare(a.date));
+    else if (currentSort === 'distance') list.sort((a,b) => b.distance - a.distance);
+    else if (currentSort === 'effort')   list.sort((a,b) => (b.effort||0) - (a.effort||0));
+
+    return list;
+  }
+
+  function renderWorkouts() {
+    const list = getFiltered();
+    const container = document.getElementById('rides-list');
+    document.getElementById('list-count').textContent =
+      `${list.length} ride${list.length !== 1 ? 's' : ''}`;
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="empty">
+          <div class="empty-zero">0</div>
+          <div class="empty-msg">No rides found. Get out there.</div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = list.map((w, i) => {
+      const zv    = ZONE_VARS[w.zone] || '#555';
+      const feel  = w.feel ? FEEL_CFG[w.feel] : null;
+      const speed = (w.distance / (w.minutes / 60)).toFixed(1);
+      const delay = Math.min(i * 0.04, 0.24);
+
+      const bars = Array.from({length: 10}, (_, idx) => {
+        const h      = 6 + idx * 3;
+        const active = w.effort && idx < w.effort;
+        const col    = w.effort >= 8 ? 'var(--z5)' : w.effort >= 6 ? 'var(--z4)' : 'var(--z2)';
+        return `<div class="ebar" style="height:${h}px${active ? `;background:${col}` : ''}"></div>`;
+      }).join('');
+
+      return `
+      <div class="ride-card" style="--zc:${zv};animation-delay:${delay}s">
+        <div class="ride-accent"></div>
+        <div class="ride-body">
+          <div class="ride-top">
+            <span class="ride-date">${fmtDate(w.date)}</span>
+            <span class="ride-badge" style="--zc:${zv}">Z${w.zone} ${ZONE_NAMES[w.zone]}</span>
+            ${feel ? `<span class="ride-feel" title="${feel.label}">${feel.emoji}</span>` : ''}
+          </div>
+          <div class="ride-dist-row">
+            <span class="ride-dist">${w.distance}</span>
+            <span class="ride-dist-unit">mi</span>
+          </div>
+          <div class="ride-metrics">
+            <span class="rmet"><strong>${fmtTime(w.minutes)}</strong> duration</span>
+            <span class="rmet"><strong>${speed}</strong> mph avg</span>
+            ${w.effort ? `<span class="rmet">RPE <strong>${w.effort}/10</strong></span>` : ''}
+          </div>
+          ${w.notes ? `<div class="ride-notes">${escHtml(w.notes)}</div>` : ''}
+        </div>
+        <div class="ride-right">
+          <div class="effort-track">${bars}</div>
+          <div class="ride-actions">
+            <button class="act-btn" onclick="openModal('${w.id}')">edit</button>
+            <button class="act-btn del" onclick="deleteWorkout('${w.id}')">delete</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderStats() {
+    const all       = workouts;
+    const totalDist = all.reduce((s,w) => s + w.distance, 0);
+    const totalMins = all.reduce((s,w) => s + w.minutes, 0);
+    const effortW   = all.filter(w => w.effort);
+    const avgEffort = effortW.length
+      ? (effortW.reduce((s,w) => s + w.effort, 0) / effortW.length).toFixed(1)
+      : null;
+
+    const zoneCounts = {};
+    all.forEach(w => { zoneCounts[w.zone] = (zoneCounts[w.zone] || 0) + 1; });
+    const topZone = Object.keys(zoneCounts).sort((a,b) => zoneCounts[b] - zoneCounts[a])[0];
+
+    document.getElementById('s-rides').textContent = all.length;
+    document.getElementById('s-dist').textContent  = totalDist.toFixed(1);
+    document.getElementById('s-time').textContent  = fmtTime(totalMins);
+    document.getElementById('s-effort').textContent = avgEffort || '—';
+
+    const zEl = document.getElementById('s-zone');
+    if (topZone) {
+      zEl.textContent  = `Z${topZone}`;
+      zEl.style.color  = `var(--z${topZone})`;
+    } else {
+      zEl.textContent = '—';
+      zEl.style.color = '';
+    }
+  }
+
+  function renderAll() { renderStats(); renderWorkouts(); }
+
+  // ── Export ────────────────────────────────────────────────────────────
+  function exportData() {
+    const header = 'Date,Distance (mi),Duration (min),Zone,Effort (RPE),Feel,Notes';
+    const rows   = workouts.map(w =>
+      [w.date, w.distance, w.minutes, w.zone, w.effort||'', w.feel||'',
+       `"${(w.notes||'').replace(/"/g,'""')}"`].join(',')
+    );
+    const a = document.createElement('a');
+    a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent([header,...rows].join('\n'));
+    a.download = 'pedal-log.csv';
+    a.click();
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  // ── Restore session state ─────────────────────────────────────────────
+  function restoreState() {
+    const savedSort = sessionStorage.getItem('ct-sort');
+    const savedZone = sessionStorage.getItem('ct-zone');
+    const savedView = sessionStorage.getItem('ct-view');
+
+    if (savedSort) {
+      currentSort = savedSort;
+      const el = [...document.querySelectorAll('#sf .fpill')]
+        .find(b => b.getAttribute('onclick')?.includes(`'${savedSort}'`));
+      if (el) { document.querySelectorAll('#sf .fpill').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
+    }
+    if (savedZone) {
+      currentZoneFilter = parseInt(savedZone); currentView = null;
+      document.querySelectorAll('#vf .fpill, #zf .fpill').forEach(b => b.classList.remove('active'));
+      const el = [...document.querySelectorAll('#zf .fpill')]
+        .find(b => b.getAttribute('onclick')?.includes(`setZoneFilter(${savedZone}`));
+      if (el) el.classList.add('active');
+      document.getElementById('list-title').textContent = `Zone ${savedZone} — ${ZONE_NAMES[parseInt(savedZone)]}`;
+    } else if (savedView && savedView !== 'all') {
+      currentView = savedView;
+      document.querySelectorAll('#vf .fpill').forEach(b => b.classList.remove('active'));
+      const el = [...document.querySelectorAll('#vf .fpill')]
+        .find(b => b.getAttribute('onclick')?.includes(`'${savedView}'`));
+      if (el) el.classList.add('active');
+      const titles = { week:'This Week', month:'This Month' };
+      document.getElementById('list-title').textContent = titles[savedView] || 'Rides';
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  restoreState();
+  renderAll();
+</script>
+</body>
+</html>
