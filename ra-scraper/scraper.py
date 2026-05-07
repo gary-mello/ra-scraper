@@ -41,10 +41,11 @@ DATE_COLUMN_KEYWORDS = {
 }
 
 TIME_RANGE_OPTIONS = [
-    (1, "24 hours", timedelta(hours=24)),
-    (2, "48 hours", timedelta(hours=48)),
-    (3, "5 days",   timedelta(days=5)),
-    (4, "7 days",   timedelta(days=7)),
+    (1, "24 hours",   timedelta(hours=24)),
+    (2, "48 hours",   timedelta(hours=48)),
+    (3, "5 days",     timedelta(days=5)),
+    (4, "7 days",     timedelta(days=7)),
+    (5, "All Events", None),
 ]
 
 DATE_FORMATS = [
@@ -113,12 +114,15 @@ def select_time_range() -> tuple[str, timedelta]:
         print(f"  {CYAN}{num}{RESET}. {label}")
 
     while True:
-        choice = input(f"\nEnter choice [{CYAN}1-4{RESET}]: ").strip()
+        choice = input(f"\nEnter choice [{CYAN}1-5{RESET}]: ").strip()
         for num, label, delta in TIME_RANGE_OPTIONS:
             if choice == str(num):
-                ok(f"Showing detections from the last {BOLD}{label}{RESET}")
+                if delta is None:
+                    ok(f"Showing {BOLD}all events{RESET} (no date filter)")
+                else:
+                    ok(f"Showing detections from the last {BOLD}{label}{RESET}")
                 return label, delta
-        print(f"  {YELLOW}Please enter 1, 2, 3, or 4.{RESET}")
+        print(f"  {YELLOW}Please enter 1, 2, 3, 4, or 5.{RESET}")
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +392,7 @@ async def run(
     tenant_url: str,
     username: str,
     password: str,
-    cutoff: datetime,
+    cutoff: datetime | None,
 ) -> tuple[list[dict], list[dict], dict]:
     all_results: list[dict] = []
     errors: list[dict] = []
@@ -444,7 +448,11 @@ async def run(
                     policy["risk_rating"] = risk_from_detail
 
                 headers, det_rows = await scrape_detection_table(page)
-                kept, no_date, out_of_range = filter_by_date(headers, det_rows, cutoff)
+
+                if cutoff is None:
+                    kept, no_date, out_of_range = det_rows, 0, 0
+                else:
+                    kept, no_date, out_of_range = filter_by_date(headers, det_rows, cutoff)
 
                 stats["included"]     += len(kept)
                 stats["no_date"]      += no_date
@@ -552,7 +560,7 @@ def print_summary(
 def main():
     tenant_url, username, password = prompt_credentials()
     range_label, delta = select_time_range()
-    cutoff = datetime.now() - delta
+    cutoff = (datetime.now() - delta) if delta is not None else None
 
     all_results, errors, stats = asyncio.run(run(tenant_url, username, password, cutoff))
 
@@ -563,7 +571,7 @@ def main():
         "scraped_at":              datetime.now().isoformat(),
         "tenant":                  tenant_url,
         "time_range":              range_label,
-        "cutoff":                  cutoff.isoformat(),
+        "cutoff":                  cutoff.isoformat() if cutoff is not None else "none",
         "total_detection_records": len(all_results),
         "detections":              all_results,
     }
